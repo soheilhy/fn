@@ -13,10 +13,11 @@ enum class FuncType {
   FILTER,
   FOLD_LEFT,
   MAP,
+  SKIP,
 };
 
-template <template <typename> class C, typename E, typename P = void,
-          typename F = std::function<void()>, FuncType type = FuncType::FILTER>
+template <template <typename...> class C, typename E, typename P = void,
+          typename F = std::function<void()>, FuncType t = FuncType::FILTER>
 class View {
  private:
   using CPtr = std::unique_ptr<C<E>>;
@@ -72,6 +73,17 @@ class View {
     return std::move(init);
   }
 
+  template <typename G>
+  void for_each(G g) {
+    evaluate([&](const E& e) { g(e); });
+  }
+
+  template <typename G>
+  View<C, E, View, G, FuncType::SKIP> skip_until(G g) {
+    return View<C, E, View, G, FuncType::SKIP>(this, g);
+  }
+
+
   /** Whether the result of this view is already calculated. */
   bool is_evaluated() { return !!container_; }
 
@@ -82,13 +94,23 @@ class View {
   operator C<E>();
 
  private:
+  bool is_filter() { return t == FuncType::FILTER; }
+
   template <typename G,
-            typename std::enable_if<!(sizeof(G) && std::is_void<P>::value), int>::type = 0>
+            typename std::enable_if<!(sizeof(G) && std::is_void<P>::value),
+                                    int>::type = 0>
   void evaluate(G g);
 
   template <typename G,
-            typename std::enable_if<(sizeof(G) && std::is_void<P>::value), int>::type = 0>
+            typename std::enable_if<(sizeof(G) && std::is_void<P>::value),
+                                    int>::type = 0>
   void evaluate(G g);
+
+  template <typename PE, typename G>
+  void do_filter(G g);
+
+  template <typename PE, typename G>
+  void do_skip(G g);
 
   // The view is either materialized or not. If materalized container_ would
   // point to the container holding the actual data.
@@ -100,10 +122,15 @@ class View {
   P* parent_;
   F func_;
 
-  template <template <typename> class CF, typename EF, typename PF, typename FF,
+  template <template <typename...> class CF, typename EF, typename PF, typename FF,
           FuncType TF>
   friend class View;
 };
+
+template <template <typename...> class C, typename E>
+View<C, E>  make_view(C<E>&& c) {
+  return View<C, E>(std::forward<C<E>>(c));
+}
 
 }  // namespace func
 
