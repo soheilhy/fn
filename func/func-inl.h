@@ -2,6 +2,8 @@
 #define FUNC_FUNC_INL_H_
 
 #include <cassert>
+#include <vector>
+#include <unordered_map>
 
 namespace func {
 
@@ -14,7 +16,10 @@ class Private {
   friend class View;
 
   template <template <typename...> class CF, typename EF>
-  friend View<CF, EF> make_view(CF<EF>&& c);
+  friend View<CF, EF> _(CF<EF>&& c);
+
+  template <template <typename...> class C, typename E>
+  friend View<C, E> _(const C<E>& c);
 };
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -60,7 +65,8 @@ View<C, E, P, F, t>& View<C, E, P, F, t>::operator=(const View& that) {
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
-View<C, E, View<C, E, P, F, t>, G> View<C, E, P, F, t>::filter(G g) {
+typename View<C, E, P, F, t>::template FView<G> View<C, E, P, F, t>::filter(
+    G g) {
   return View<C, E, View, G>(*this, g, Private());
 }
 
@@ -68,8 +74,8 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
 auto View<C, E, P, F, t>::map(G g)
-    -> View<C, typename std::decay<decltype(g(*(E*) nullptr))>::type, View, G,
-            FuncType::MAP> {
+    -> typename View<C, E, P, F, t>::template MView<decltype(g(*(E*) nullptr)),
+                                                    G> {
   return View<C, typename std::decay<decltype(g(*(E*)nullptr))>::type, View, G,
               FuncType::MAP>(*this, g, Private());
 }
@@ -78,7 +84,7 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename T, typename G>
 T View<C, E, P, F, t>::fold_left(T init, G g) {
-  evaluate([&init, &g](const E& e) { init = g(init, e); });
+  do_evaluate([&init, &g](const E& e) { init = g(init, e); });
   return std::move(init);
 }
 
@@ -88,7 +94,7 @@ template <typename G>
 E View<C, E, P, F, t>::reduce(G g) {
   bool first = true;
   E init;
-  evaluate([&](const E& e) {
+  do_evaluate([&](const E& e) {
     if (first) {
       init = e;
       first = false;
@@ -103,7 +109,7 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
 void View<C, E, P, F, t>::for_each(G g) {
-  evaluate([&](const E& e) { g(e); });
+  do_evaluate([&](const E& e) { g(e); });
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -112,6 +118,14 @@ template <typename G>
 View<C, E, View<C, E, P, F, t>, G, FuncType::SKIP>
 View<C, E, P, F, t>::skip_until(G g) {
   return View<C, E, View, G, FuncType::SKIP>(*this, g, Private());
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+View<C, E, View<C, E, P, F, t>, G, FuncType::KEEP>
+View<C, E, P, F, t>::keep_while(G g) {
+  return View<C, E, View, G, FuncType::KEEP>(*this, g, Private());
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -148,10 +162,91 @@ View<C, E, P, F, t>::zip(const View<C2, E2, P2, F2, t2>& that) {
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
+E View<C, E, P, F, t>::sum() {
+  return reduce([](const E& s, const E& e) { return s + e; });
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+E View<C, E, P, F, t>::product() {
+  return reduce([](const E& s, const E& e) { return s * e; });
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+E View<C, E, P, F, t>::first() {
+  E first;
+  bool is_first = true;
+  do_evaluate([&](const E& e) {
+    if (!is_first) {
+      return;
+    }
+
+    first = e;
+    is_first = false;
+  });
+
+  return first;
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+E View<C, E, P, F, t>::last() {
+  E last;
+  do_evaluate([&](const E& e) {
+    // TODO(soheil): This would be very slow.
+    last = e;
+  });
+
+  return last;
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+bool View<C, E, P, F, t>::for_all(G g) {
+  return fold_left(true,
+                   [&g](const bool& all, const E& e) { return all && g(e); });
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+typename View<C, E, P, F, t>::template FView<G> View<C, E, P, F, t>::operator%(
+    G g) {
+  return filter(g);
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+auto View<C, E, P, F, t>::operator*(G g)
+    -> typename View<C, E, P, F, t>::template MView<decltype(g(*(E*) nullptr)),
+                                                    G> {
+  return map(g);
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+E View<C, E, P, F, t>::operator/(G g) {
+  return reduce(g);
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G>
+View<C, E, P, F, t>& View<C, E, P, F, t>::operator>>(G g) {
+  for_each(g);
+  return *this;
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
 template <typename G,
           typename std::enable_if<sizeof(G) && std::is_same<void*, P>::value,
                                   int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   assert(is_evaluated() && "Cannot evaluate a view without a parent.");
 
   for (const auto& e : *container_) {
@@ -165,10 +260,10 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == FuncType::FILTER,
                                   int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_.evaluate([this, &g](const PE& e) {
+  parent_.do_evaluate([this, &g](const PE& e) {
     if (!func_(e)) {
       return;
     }
@@ -183,13 +278,13 @@ template <typename G,
           typename std::enable_if<
               sizeof(G) && !std::is_same<void*, P>::value && t == FuncType::ZIP,
               int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   auto p1 = parent_.first.evaluate();
   auto itr = p1.begin();
   auto end = p1.end();
 
   using P2E = typename std::decay<typename P::second_type::Element>::type;
-  parent_.second.evaluate([&g, &itr, &end](const P2E& e) {
+  parent_.second.do_evaluate([&g, &itr, &end](const P2E& e) {
     if (itr == end) {
       return;
     }
@@ -205,11 +300,11 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == FuncType::SKIP,
                                   int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
   bool passed = false;
-  parent_.evaluate([this, &g, &passed](const PE& e) {
+  parent_.do_evaluate([this, &g, &passed](const PE& e) {
     if (!passed && !func_(e)) {
       return;
     }
@@ -222,13 +317,37 @@ void View<C, E, P, F, t>::evaluate(G g) {
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
+          typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
+                                      t == FuncType::KEEP,
+                                  int>::type>
+void View<C, E, P, F, t>::do_evaluate(G g) {
+  using PE = typename std::decay<typename P::Element>::type;
+
+  bool keep = true;
+  parent_.do_evaluate([this, &g, &keep](const PE& e) {
+    if (!keep) {
+      return;
+    }
+
+    if (!func_(e)) {
+      keep = false;
+      return;
+    }
+
+    g(e);
+  });
+}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+template <typename G,
           typename std::enable_if<
               sizeof(G) && !std::is_same<void*, P>::value && t == FuncType::MAP,
               int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_.evaluate([this, &g](const PE& e) { g(func_(e)); });
+  parent_.do_evaluate([this, &g](const PE& e) { g(func_(e)); });
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -237,10 +356,10 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == FuncType::FOLD_LEFT,
                                   int>::type>
-void View<C, E, P, F, t>::evaluate(G g) {
+void View<C, E, P, F, t>::do_evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_.evaluate([this, &g](const PE& e) { g(func_(e)); });
+  parent_.do_evaluate([this, &g](const PE& e) { g(func_(e)); });
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -251,7 +370,7 @@ C<E> View<C, E, P, F, t>::evaluate() {
   }
 
   C<E> c;
-  evaluate([&c](const E& e) { c.push_back(e); });
+  do_evaluate([&c](const E& e) { c.push_back(e); });
   return std::move(c);
 }
 
@@ -262,8 +381,23 @@ View<C, E, P, F, t>::operator C<E>() {
 }
 
 template <template <typename...> class C, typename E>
-View<C, E> make_view(C<E>&& c) {
-  return View<C, E>(std::forward<C<E>>(c), Private());
+View<C, E> _(C<E>&& c) {
+  return View<C, E>(std::move(c), Private());
+}
+
+template <template <typename...> class C, typename E>
+View<C, E> _(const C<E>& c) {
+  return View<C, E>(c, Private());
+}
+
+template <typename E>
+View<std::vector, E> _(const std::initializer_list<E>& l) {
+  return _(std::vector<E>(l));
+}
+
+template <typename K, typename V>
+View<std::vector, std::pair<K, V>> _(const std::unordered_map<K, V>& l) {
+  return _(std::vector<std::pair<K, V>>(l.begin(), l.end()));
 }
 
 }  // namespace func
