@@ -14,12 +14,13 @@ class Private {
   friend class View;
 
   template <template <typename...> class CF, typename EF>
-  friend typename View<CF, EF>::SelfPtr make_view(CF<EF>&& c);
+  friend View<CF, EF> make_view(CF<EF>&& c);
 };
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
-View<C, E, P, F, t>::View(const C<E> &c, Private) : container_(new C<E>(c)) {}
+View<C, E, P, F, t>::View(const C<E>& c, Private)
+    : container_(new C<E>(c)) {}
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
@@ -28,42 +29,49 @@ View<C, E, P, F, t>::View(C<E>&& c, Private)
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
-View<C, E, P, F, t>::View(const PPtr& p, F f, Private)
-    : container_(nullptr), parent_(p), func_(f) {
-  assert(p != nullptr && "Parent is nullptr.");
-}
+View<C, E, P, F, t>::View(const P& p, F f, Private)
+    : container_(), parent_(p), func_(f) {}
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
-View<C, E, P, F, t>::View(const PPtr& p, F f, E data, uint64_t metadata,
-                          Private)
-    : container_(nullptr),
-      parent_(p),
-      func_(f),
-      data_(data),
-      metadata_(metadata) {
-  assert(p != nullptr && "Parent is nullptr.");
+View<C, E, P, F, t>::View(const P& p, F f, E data, uint64_t metadata, Private)
+    : container_(), parent_(p), func_(f), data_(data), metadata_(metadata) {}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+View<C, E, P, F, t>::View(const View& that)
+    : container_(that.container_ == nullptr ? nullptr
+                                            : new C<E>(*that.container_)),
+      parent_(that.parent_),
+      func_(that.func_),
+      data_(that.data_),
+      metadata_(that.metadata_) {}
+
+template <template <typename...> class C, typename E, typename P, typename F,
+          FuncType t>
+View<C, E, P, F, t>& View<C, E, P, F, t>::operator=(const View& that) {
+  container_.reset(new C<E>(*that.container_));
+  parent_ = that.parent_;
+  func_ = that.func_;
+  data_ = that.data_;
+  metadata_ = that.metadata_;
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
-typename View<C, E, P, F, t>::template VPtr<C, E, View<C, E, P, F, t>, G>
-View<C, E, P, F, t>::filter(G g) {
-  using V = View<C, E, View, G>;
-  return std::make_shared<V>(this->shared_from_this(), g, Private());
+View<C, E, View<C, E, P, F, t>, G> View<C, E, P, F, t>::filter(G g) {
+  return View<C, E, View, G>(*this, g, Private());
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
 auto View<C, E, P, F, t>::map(G g)
-    -> typename View<C, E, P, F, t>::template VPtr<
-          C, typename std::decay<decltype(g(*(E*) nullptr))>::type, View, G,
-          FuncType::MAP> {
-  using V = View<C, typename std::decay<decltype(g(*(E*) nullptr))>::type, View,
-                 G, FuncType::MAP>;
-  return std::make_shared<V>(this->shared_from_this(), g, Private());
+    -> View<C, typename std::decay<decltype(g(*(E*) nullptr))>::type, View, G,
+            FuncType::MAP> {
+  return View<C, typename std::decay<decltype(g(*(E*)nullptr))>::type, View, G,
+              FuncType::MAP>(*this, g, Private());
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -101,25 +109,20 @@ void View<C, E, P, F, t>::for_each(G g) {
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G>
-typename View<C, E, P, F, t>::template VPtr<C, E, View<C, E, P, F, t>, G,
-                                            FuncType::SKIP>
+View<C, E, View<C, E, P, F, t>, G, FuncType::SKIP>
 View<C, E, P, F, t>::skip_until(G g) {
-  using V = View<C, E, View, G, FuncType::SKIP>;
-  return std::make_shared<V>(this->shared_from_this(), g, Private());
+  return View<C, E, View, G, FuncType::SKIP>(*this, g, Private());
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
-typename View<C, E, P, F, t>::template VPtr<
-    C, E, View<C, E, P, F, t>, std::function<bool(const E&)>, FuncType::SKIP>
+View<C, E, View<C, E, P, F, t>, std::function<bool(const E&)>, FuncType::SKIP>
 View<C, E, P, F, t>::drop(size_t n) {
-  using V = View<C, E, View, std::function<bool(const E&)>, FuncType::SKIP>;
-  auto v =
-      std::make_shared<V>(this->shared_from_this(),
-                          std::function<bool(const E&)>(), n - 1, Private());
+  auto v = View<C, E, View, std::function<bool(const E&)>, FuncType::SKIP>(
+      this, std::function<bool(const E&)>(), n - 1, Private());
 
-  auto f = [v](const E&) {
-    if (v->data_ == 0) {
+  auto f = [&v](const E&) {
+    if (v.data_ == 0) {
       return true;
     }
 
@@ -134,23 +137,20 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <template <typename...> class C2, typename E2, typename P2,
           typename F2, FuncType t2>
-typename View<C, E, P, F, t>::template VPtr<
-    C, std::pair<E, E2>,
-    std::pair<typename View<C, E, P, F, t>::template VPtr<C, E, P, F, t>,
-              typename View<C, E, P, F, t>::template VPtr<C2, E2, P2, F2, t2>>,
-    std::function<void()>, FuncType::ZIP>
-View<C, E, P, F, t>::zip(const VPtr<C2, E2, P2, F2, t2>& that) {
-  using PtrPair = std::pair<VPtr<C, E, P, F, t>, VPtr<C2, E2, P2, F2, t2>>;
-  return std::make_shared<
-      View<C, std::pair<E, E2>, PtrPair, std::function<void()>, FuncType::ZIP>>(
-      std::make_shared<PtrPair>(std::make_pair(this->shared_from_this(), that)),
-      [] {}, Private());
+View<C, std::pair<E, E2>,
+     std::pair<View<C, E, P, F, t>, View<C2, E2, P2, F2, t2>>,
+     std::function<void()>, FuncType::ZIP>
+View<C, E, P, F, t>::zip(const View<C2, E2, P2, F2, t2>& that) {
+  using Pair = std::pair<View, View<C2, E2, P2, F2, t2>>;
+  return View<C, std::pair<E, E2>, Pair, std::function<void()>, FuncType::ZIP>(
+      std::make_pair(*this, that), [] {}, Private());
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
-template <typename G, typename std::enable_if<
-                          (sizeof(G) && std::is_void<P>::value), int>::type>
+template <typename G,
+          typename std::enable_if<sizeof(G) && std::is_same<void*, P>::value,
+                                  int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
   assert(is_evaluated() && "Cannot evaluate a view without a parent.");
 
@@ -162,13 +162,13 @@ void View<C, E, P, F, t>::evaluate(G g) {
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
-          typename std::enable_if<
-              sizeof(G) && !std::is_void<P>::value && t == FuncType::FILTER,
-              int>::type>
+          typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
+                                      t == FuncType::FILTER,
+                                  int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_->evaluate([this, &g](const PE& e) {
+  parent_.evaluate([this, &g](const PE& e) {
     if (!func_(e)) {
       return;
     }
@@ -181,16 +181,15 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
           typename std::enable_if<
-              sizeof(G) && !std::is_void<P>::value && t == FuncType::ZIP,
+              sizeof(G) && !std::is_same<void*, P>::value && t == FuncType::ZIP,
               int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
-  auto p1 = parent_->first->evaluate();
+  auto p1 = parent_.first.evaluate();
   auto itr = p1.begin();
   auto end = p1.end();
 
-  using P2E =
-      typename std::decay<typename P::second_type::element_type::Element>::type;
-  parent_->second->evaluate([&g, &itr, &end](const P2E& e) {
+  using P2E = typename std::decay<typename P::second_type::Element>::type;
+  parent_.second.evaluate([&g, &itr, &end](const P2E& e) {
     if (itr == end) {
       return;
     }
@@ -203,14 +202,14 @@ void View<C, E, P, F, t>::evaluate(G g) {
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
-          typename std::enable_if<
-              sizeof(G) && !std::is_void<P>::value && t == FuncType::SKIP,
-              int>::type>
+          typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
+                                      t == FuncType::SKIP,
+                                  int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
   bool passed = false;
-  parent_->evaluate([this, &g, &passed](const PE& e) {
+  parent_.evaluate([this, &g, &passed](const PE& e) {
     if (!passed && !func_(e)) {
       return;
     }
@@ -224,24 +223,24 @@ template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
           typename std::enable_if<
-              sizeof(G) && !std::is_void<P>::value && t == FuncType::MAP,
+              sizeof(G) && !std::is_same<void*, P>::value && t == FuncType::MAP,
               int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_->evaluate([this, &g](const PE& e) { g(func_(e)); });
+  parent_.evaluate([this, &g](const PE& e) { g(func_(e)); });
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
           FuncType t>
 template <typename G,
-          typename std::enable_if<
-              sizeof(G) && !std::is_void<P>::value && t == FuncType::FOLD_LEFT,
-              int>::type>
+          typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
+                                      t == FuncType::FOLD_LEFT,
+                                  int>::type>
 void View<C, E, P, F, t>::evaluate(G g) {
   using PE = typename std::decay<typename P::Element>::type;
 
-  parent_->evaluate([this, &g](const PE& e) { g(func_(e)); });
+  parent_.evaluate([this, &g](const PE& e) { g(func_(e)); });
 }
 
 template <template <typename...> class C, typename E, typename P, typename F,
@@ -263,9 +262,8 @@ View<C, E, P, F, t>::operator C<E>() {
 }
 
 template <template <typename...> class C, typename E>
-typename View<C, E>::SelfPtr make_view(C<E>&& c) {
-  return std::make_shared<View<C, E>>(std::forward<C<E>>(c),
-                                      Private());
+View<C, E> make_view(C<E>&& c) {
+  return View<C, E>(std::forward<C<E>>(c), Private());
 }
 
 }  // namespace func

@@ -1,5 +1,3 @@
-
-
 #ifndef FUNC_INCLUDE_FUNC_H_
 #define FUNC_INCLUDE_FUNC_H_
 
@@ -9,17 +7,9 @@
 #include <memory>
 #include <type_traits>
 
+#include "func/details.h"
+
 namespace func {
-
-enum class FuncType {
-  FILTER,
-  FOLD_LEFT,
-  MAP,
-  SKIP,
-  ZIP,
-};
-
-class Private;
 
 // View logically represents a collection C of elements of type E. View provides
 // functional programming primitives, such as filter, map, and reduce to name a
@@ -37,30 +27,24 @@ class Private;
 // view to C<E>.
 //
 // View is immutable, and it is safe to share them among threads.
-template <template <typename...> class C, typename E, typename P = void,
+template <template <typename...> class C, typename E, typename P = void*,
           typename F = std::function<void()>, FuncType t = FuncType::FILTER>
-class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
+class View {
  public:
   using CPtr = std::unique_ptr<C<E>>;
-  using PPtr = std::shared_ptr<P>;
-  using SelfPtr = std::shared_ptr<View>;
-  template <template <typename...> class CP, typename EP, typename PP = P,
-            typename FP = F, FuncType tp = t>
-  using VPtr = std::shared_ptr<View<CP, EP, PP, FP, tp>>;
-
   using Element = E;
 
   // Use func::make_view instead. These constructors are not really public.
-  View(const C<E> &c, Private);
-  View(C<E> &&c, Private);
-  View(const PPtr& p, F f, Private);
-  View(const PPtr& p, F f, E data, uint64_t metadata, Private);
+  View(const C<E>& c, Private);
+  View(C<E>&& c, Private);
+  View(const P& p, F f, Private);
+  View(const P& p, F f, E data, uint64_t metadata, Private);
 
-  // Can't be copied.
-  View(const View&) = delete;
-  View& operator=(const View&) = delete;
+  // Copyable.
+  View(const View&);
+  View& operator=(const View&);
 
-  // Can be moved.
+  // Movable.
   View(View&&) = default;
   View& operator=(View&&) = default;
 
@@ -68,12 +52,12 @@ class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
 
   // Filters the content of this view using the given function.
   template <typename G>
-  VPtr<C, E, View, G> filter(G g);
+  View<C, E, View, G> filter(G g);
 
   // Maps the content of this view using the given function.
   template <typename G>
   auto map(G g)
-      -> VPtr<C, typename std::decay<decltype(g(*(E*)nullptr))>::type, View, G,
+      -> View<C, typename std::decay<decltype(g(*(E*) nullptr))>::type, View, G,
               FuncType::MAP>;
 
   // Folds the content of this view from left. Uses the given initial value.
@@ -90,18 +74,18 @@ class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
 
   // Skips element until g returns true.
   template <typename G>
-  VPtr<C, E, View, G, FuncType::SKIP> skip_until(G g);
+  View<C, E, View, G, FuncType::SKIP> skip_until(G g);
 
   // Drop the first n elements of the view.
-  VPtr<C, E, View, std::function<bool(const E&)>, FuncType::SKIP> drop(
+  View<C, E, View, std::function<bool(const E&)>, FuncType::SKIP> drop(
       size_t n = 1);
 
   template <template <typename...> class C2, typename E2, typename P2,
             typename F2, FuncType t2>
-  VPtr<C, std::pair<E, E2>,
-       std::pair<VPtr<C, E, P, F, t>, VPtr<C2, E2, P2, F2, t2>>,
+  View<C, std::pair<E, E2>,
+       std::pair<View<C, E, P, F, t>, View<C2, E2, P2, F2, t2>>,
        std::function<void()>, FuncType::ZIP>
-      zip(const VPtr<C2, E2, P2, F2, t2>& that);
+      zip(const View<C2, E2, P2, F2, t2>& that);
 
   // Whether the result of this view is already calculated.
   bool is_evaluated() { return !!container_; }
@@ -116,38 +100,38 @@ class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
   bool is_filter() { return t == FuncType::FILTER; }
 
   template <typename G,
-            typename std::enable_if<(sizeof(G) && std::is_void<P>::value),
+            typename std::enable_if<sizeof(G) && std::is_same<void*, P>::value,
                                     int>::type = 0>
   void evaluate(G g);
 
-  template <typename G,
-            typename std::enable_if<
-                sizeof(G) && !std::is_void<P>::value && t == FuncType::FILTER,
-                int>::type = 0>
+  template <typename G, typename std::enable_if<
+                            sizeof(G) && !std::is_same<void*, P>::value &&
+                                t == FuncType::FILTER,
+                            int>::type = 0>
   void evaluate(G g);
 
-  template <typename G,
-            typename std::enable_if<
-                sizeof(G) && !std::is_void<P>::value && t == FuncType::ZIP,
-                int>::type = 0>
+  template <typename G, typename std::enable_if<
+                            sizeof(G) && !std::is_same<void*, P>::value &&
+                                t == FuncType::ZIP,
+                            int>::type = 0>
   void evaluate(G g);
 
-  template <typename G,
-            typename std::enable_if<
-                sizeof(G) && !std::is_void<P>::value && t == FuncType::SKIP,
-                int>::type = 0>
+  template <typename G, typename std::enable_if<
+                            sizeof(G) && !std::is_same<void*, P>::value &&
+                                t == FuncType::SKIP,
+                            int>::type = 0>
   void evaluate(G g);
 
-  template <typename G,
-            typename std::enable_if<
-                sizeof(G) && !std::is_void<P>::value && t == FuncType::MAP,
-                int>::type = 0>
+  template <typename G, typename std::enable_if<
+                            sizeof(G) && !std::is_same<void*, P>::value &&
+                                t == FuncType::MAP,
+                            int>::type = 0>
   void evaluate(G g);
 
-  template <typename G,
-            typename std::enable_if<sizeof(G) && !std::is_void<P>::value &&
-                                        t == FuncType::FOLD_LEFT,
-                                    int>::type = 0>
+  template <typename G, typename std::enable_if<
+                            sizeof(G) && !std::is_same<void*, P>::value &&
+                                t == FuncType::FOLD_LEFT,
+                            int>::type = 0>
   void evaluate(G g);
 
   template <typename PE, typename G>
@@ -170,7 +154,7 @@ class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
 
   // Or otherwise, we have a step information indicating the parent view, and
   // the function we need to apply on it.
-  PPtr parent_;
+  P parent_;
   F func_;
 
   // These are private data used by func_, if it requires to store a context.
@@ -184,7 +168,7 @@ class View : public std::enable_shared_from_this<View<C, E, P, F, t>> {
 
 /** Creates a view of the given collection. */
 template <template <typename...> class C, typename E>
-typename View<C, E>::SelfPtr make_view(C<E>&& c);
+View<C, E> make_view(C<E>&& c);
 
 }  // namespace func
 
