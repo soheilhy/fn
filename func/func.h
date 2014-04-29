@@ -29,18 +29,19 @@ namespace func {
 // view to C<E>.
 //
 // View is immutable, and it is safe to share them among threads.
-template <template <typename...> class C, typename E, typename P = void*,
+template <template <typename...> class C, typename E,
+          template <typename...> class R = Copy, typename P = void*,
           typename F = std::function<void()>, FuncType t = FuncType::FILTER>
 class View {
  public:
   using Element = E;
-  using CPtr = std::unique_ptr<C<E>>;
+  using CPtr = R<C<E>>;
 
   template <typename G>
-  using FView = View<C, E, View, G>;
+  using FView = View<C, E, R, View, G>;
 
   template <typename MP, typename G>
-  using MView = View<C, typename std::decay<MP>::type, View, G,
+  using MView = View<C, typename std::decay<MP>::type, R, View, G,
               FuncType::MAP>;
 
   // Use func::_ instead. These constructors are not really public.
@@ -81,23 +82,24 @@ class View {
 
   // Skips element until g returns true.
   template <typename G>
-  View<C, E, View, G, FuncType::SKIP> skip_until(G g);
+  View<C, E, R, View, G, FuncType::SKIP> skip_until(G g);
 
   // Keeps elements while g returns true.
   template <typename G>
-  View<C, E, View, G, FuncType::KEEP> keep_while(G g);
+  View<C, E, R, View, G, FuncType::KEEP> keep_while(G g);
 
   // Drop the first n elements of the view.
-  View<C, E, View, std::function<bool(const E&)>, FuncType::SKIP> drop(
+  View<C, E, R, View, std::function<bool(const E&)>, FuncType::SKIP> drop(
       size_t n = 1);
 
   // Zips this view with another view.
-  template <template <typename...> class C2, typename E2, typename P2,
-            typename F2, FuncType t2>
-  View<C, std::pair<E, E2>,
-       std::pair<View<C, E, P, F, t>, View<C2, E2, P2, F2, t2>>,
+  template <template <typename...> class C2, typename E2,
+            template <typename...> class R2, typename P2, typename F2,
+            FuncType t2>
+  View<C, std::pair<E, E2>, R,
+       std::pair<View<C, E, R, P, F, t>, View<C2, E2, R2, P2, F2, t2>>,
        std::function<void()>, FuncType::ZIP>
-      zip(const View<C2, E2, P2, F2, t2>& that);
+      zip(const View<C2, E2, R2, P2, F2, t2>& that);
 
   // Produces the sum of elements in the view.
   E sum();
@@ -141,12 +143,13 @@ class View {
   template <typename G>
   View& operator>>(G g);
 
-  template <template <typename...> class C2, typename E2, typename P2,
-            typename F2, FuncType t2>
-  View<C, std::pair<E, E2>,
-       std::pair<View<C, E, P, F, t>, View<C2, E2, P2, F2, t2>>,
+  template <template <typename...> class C2, typename E2,
+            template <typename...> class R2, typename P2, typename F2,
+            FuncType t2>
+  View<C, std::pair<E, E2>, R,
+       std::pair<View<C, E, R, P, F, t>, View<C2, E2, R2, P2, F2, t2>>,
        std::function<void()>, FuncType::ZIP>
-      operator+(const View<C2, E2, P2, F2, t2>& that);
+      operator+(const View<C2, E2, R2, P2, F2, t2>& that);
 
  private:
   bool is_filter() { return t == FuncType::FILTER; }
@@ -205,8 +208,9 @@ class View {
   E data_;
   uint64_t metadata_;
 
-  template <template <typename...> class CF, typename EF, typename PF,
-            typename FF, FuncType TF>
+  template <template <typename...> class CF, typename EF,
+            template <typename...> class RF, typename PF, typename FF,
+            FuncType tf>
   friend class View;
 };
 
@@ -216,6 +220,9 @@ View<C, E> _(C<E>&& c);
 
 template <template <typename...> class C, typename E>
 View<C, E> _(const C<E>& c);
+
+template <template <typename...> class C, typename E>
+View<C, E, Ref> _(const C<E>* c);
 
 template <typename K, typename V>
 View<std::vector, std::pair<K, V>> _(const std::unordered_map<K, V>& l);
