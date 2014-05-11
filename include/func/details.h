@@ -1,12 +1,15 @@
-#ifndef FUNC_INCLUDE_PRIVATE_H_
-#define FUNC_INCLUDE_PRIVATE_H_
+#ifndef FUNC_DETAILS_H_
+#define FUNC_DETAILS_H_
 
 #include <memory>
+#include <tuple>
 
 namespace func {
+namespace details {
 
 enum class FuncType {
   FILTER,
+  FLAT_MAP,
   FOLD_LEFT,
   KEEP,
   MAP,
@@ -48,7 +51,18 @@ struct Ref {
   const T* p;
 };
 
+template <typename>
+struct is_pair {
+  const static bool value = false;
+};
+
+template <typename F, typename S>
+struct is_pair<std::pair<F, S>> {
+  const static bool value = true;
+};
+
+}  // namespace details
 }  // namespace func
 
-#endif  // FUNC_INCLUDE_PRIVATE_H_
+#endif  // FUNC_DETAILS_H_
 
