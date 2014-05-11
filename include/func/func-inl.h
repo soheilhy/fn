@@ -111,7 +111,7 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename G>
 E View<C, E, R, P, F, t>::reduce(G g) {
   bool first = true;
-  E init;
+  E init{};
   do_evaluate([&](const E& e) {
     if (first) {
       init = e;
@@ -227,9 +227,21 @@ E View<C, E, R, P, F, t>::last() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, func::details::FuncType t>
+E View<C, E, R, P, F, t>::max() {
+  return reduce([](const E& m, const E& e) { return std::max(m, e); });
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
+E View<C, E, R, P, F, t>::min() {
+  return reduce([](const E& m, const E& e) { return std::min(m, e); });
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
 size_t View<C, E, R, P, F, t>::size() {
   size_t size = 0;
-  do_evaluate([&](const E& e) { size++; });
+  do_evaluate([&](const E& /* e */) { size++; });
   return size;
 }
 

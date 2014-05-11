@@ -122,6 +122,14 @@ class View {
   // Returns the last element in the view.
   E last();
 
+  // Returns the minimum element in the view. Assumes that operator< is defined
+  // for E.
+  E min();
+
+  // Returns the maximum element in the view. Assumes that operator< is defined
+  // for E.
+  E max();
+
   // Returns the number of elements in the view.
   size_t size();
 
