@@ -15,7 +15,7 @@ configuration, **no** installation, etc.
 
 
 ##tldr; Summary##
-_fn_ provides a lazy evaluated stream, called View, (similar to Scala's
+_fn_ provides a lazy evaluated *view* (similar to Scala's
 `view`) on which you can apply the usual functional programming
 paradigms, including but not limited to `filter`, `map`, `reduce`,
 `zip`, `fold_left`, `flat_map` and `for_all`. View are iteratble.
