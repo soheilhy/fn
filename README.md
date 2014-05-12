@@ -93,13 +93,6 @@ int max = _(range(999, 99, -1))
                })
               .max();
 ```
-##How to use##
-Just add _fn_'s `include` directory to your C++ include directories:
-```
-CXX -std=c++11 -I ${FN_HOME}/include/ ...
-```
-That's all. It's a header only library with **no** dependecies, **no**
-configuration, **no** installation, etc.
 
 ##Introduction##
 C++11 come with awesome functional programming concepts but the syntax
@@ -206,7 +199,7 @@ int main() {
 ###Range###
 Range is pretty similar to python's `xrange`. To create a range, one
 calls `fn::range()`:
-```
+```c++
 #include "fn/range.h"
 
 using fn::range;
@@ -220,7 +213,7 @@ int main() {
 ```
 
 You can also pass the range to `_` create a view:
-```
+```c++
 #include "fn/fn.h"
 #include "fn/range.h"
 
@@ -243,6 +236,15 @@ and two parameters. You can access the paramters as `_1` and `_2`.
 auto a = _$ { return _1 * 2; }
 auto b = _$$ { return std::max(_1, _2); }
 ```
+
+##How to Use##
+Just add _fn_'s `include` directory to your C++ include directories:
+```
+CXX -std=c++11 -I ${FN_HOME}/include/ ...
+```
+That's all. It's a header only library with **no** dependecies, **no**
+configuration, **no** installation, etc.
+
 
 
 
