@@ -56,7 +56,7 @@ auto r = _(&v).filter([](int i) { return i % 2 == 0; })
               .reduce([](int m, int i) { return m ^ i; });
 ```
 
-**WORD LEN COUNT** Count the number of words of each distinct length.
+**WORDS OF SAME LENGTH** Count the number of words of each distinct length.
 ```C++
 vector<string> words {"map", "fold", "filter", "reduce", "any"};
 auto len_count =
