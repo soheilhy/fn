@@ -1,8 +1,11 @@
 #_fn_#
-_fn_ is a functional programming library for C++11. It has a concise
-syntax and works with `gcc-4.8+` and `clang-3.4+`. Just add _fn_'s
-`include` directory to your C++ include directories, and you are
-ready to go:
+_fn_ is a collection of functional programming helpers for C++
+collections. It has a concise syntax and works with `gcc-4.8+`
+and `clang-3.4+`. It is efficient, lightweight and convenient
+(compared to the standard library helpers in `<algorithm>`).
+
+Just add _fn_'s `include` directory to your C++ include directories,
+and you are ready to go:
 ```
 CXX -std=c++11 -I ${FN_HOME}/include/ ...
 ```
