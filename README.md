@@ -1,7 +1,15 @@
 #_fn_#
 _fn_ is a functional programming library for C++11. It has a concise
-syntax, is header-only and has no dependencies. It works with `gcc-4.8+`
-and `clang-3.4+`.
+syntax and works with `gcc-4.8+` and `clang-3.4+`. Just add _fn_'s
+`include` directory to your C++ include directories, and you are
+ready to go:
+```
+CXX -std=c++11 -I ${FN_HOME}/include/ ...
+```
+
+That's all. It's a header only library with **no** dependecies, **no**
+configuration, **no** installation, etc.
+
 
 ##tldr; Summary##
 _fn_ provides a lazy evaluated stream, called View, (similar to Scala's
@@ -236,15 +244,6 @@ and two parameters. You can access the paramters as `_1` and `_2`.
 auto a = _$ { return _1 * 2; }
 auto b = _$$ { return std::max(_1, _2); }
 ```
-
-##How to Use##
-Just add _fn_'s `include` directory to your C++ include directories:
-```
-CXX -std=c++11 -I ${FN_HOME}/include/ ...
-```
-That's all. It's a header only library with **no** dependecies, **no**
-configuration, **no** installation, etc.
-
 
 
 
