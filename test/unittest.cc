@@ -69,18 +69,33 @@ TEST(Basic, ForAll) {
 
 TEST(Basic, Zip) {
   auto lst = vector<int>({0, 1, 2, 3, 4});
-  auto zip = _(&lst).zip(_(lst)).evaluate();
+  auto zip = _(&lst).zip(_(lst));
+  auto zv = zip.evaluate();
   // zip should be {(0, 0), (1, 1), ..., (4, 4)}.
 
   EXPECT_EQ(lst.size(), zip.size(),
             "Zipped vector should be of the same size of the original vector.");
 
   for (auto i = 1; i < 5; i++) {
-    auto f = zip[i].first, s = zip[i].second;
+    auto f = zv[i].first, s = zv[i].second;
     EXPECT_EQ(i, f, "Incorrect first element.");
     EXPECT_EQ(i, s, "Incorrect second element.");
     EXPECT_EQ(f, s, "First and second elements should be equal.");
   }
+
+  size_t count = 0;
+  for (auto e : zip) {
+    auto f = e.first, s = e.second;
+    EXPECT_EQ(f, s, "First and second elements should be equal.");
+    count++;
+  }
+  EXPECT_EQ(size_t(5), count, "There should be 5 elements zipped.");
+}
+
+TEST(Basic, First) {
+  auto first =
+      _({1, 2, 3, 4, 5}).filter([](int i) { return i % 2 == 0; }).first();
+  EXPECT_EQ(2, first, "The first even number should be 2.");
 }
 
 TEST(Basic, Sum) {
@@ -182,6 +197,19 @@ TEST(Basic, InPlaceEvaluateMap) {
   EXPECT_EQ(2, m[4], "Incorrectly mapped.");
   EXPECT_EQ(3, m[8], "Incorrectly mapped.");
   EXPECT_EQ(4, m[12], "Incorrectly mapped.");
+}
+
+TEST(Basic, Iterators) {
+  auto r = _({1, 2, 3, 4, 5});
+
+  size_t count = 0;
+  size_t sum = 0;
+  for (auto i : r % [](int i) { return i % 2 == 0; }) {
+    count++;
+    sum += i;
+  }
+  EXPECT_EQ(size_t(2), count, "There are only two even numbers in the view.");
+  EXPECT_EQ(size_t(2 + 4), sum, "And their sum should be 6.");
 }
 
 // A vector that can't be copied.

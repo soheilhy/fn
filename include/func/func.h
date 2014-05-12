@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "func/details.h"
 #include "func/range.h"
@@ -39,7 +40,9 @@ template <template <typename...> class C, typename E,
 class View {
  public:
   using Element = E;
+  using Container = C<E>;
   using CPtr = R<C<E>>;
+  using PView = P;
 
   template <typename G>
   using FView = View<C, E, R, View, G>;
@@ -47,6 +50,15 @@ class View {
   template <typename MP, typename G>
   using MView = View<C, typename std::decay<MP>::type, R, View, G,
                      func::details::FuncType::MAP>;
+
+  using Iterator = func::details::ViewIterator<View, PView, t>;
+
+  // For compability with stl. Never used internally.
+  using iterator = Iterator;
+  using const_iterator = Iterator;
+  using value_type = Element;
+
+  static const func::details::FuncType func_type = t;
 
   // Use func::_ instead. These constructors are not technically public.
   View(const C<E>& c, func::details::Private);
@@ -156,6 +168,21 @@ class View {
   // Returns the values in the view as a deque.
   std::deque<E> as_deque();
 
+  // Returns the values as a set.
+  // Note: This is different than distinct(). Here we simply insert elements
+  // into unordered_set, but in disctinct() we use std::unique. They have
+  // different performance implications.
+  std::unordered_set<E> as_set();
+
+  // Returns the values in a sorted order using c as the comparator.
+  template <typename Cmp>
+  C<E> sort(Cmp c = std::less<E>());
+
+  // Returns distinct values using eq as the equality function.
+  // Note: See as_set().
+  template <typename Eq>
+  C<E> distinct(Eq eq = std::equal_to<E>());
+
   // Returns the values in the view as a map.
   template <typename K, typename V,
             typename std::enable_if<
@@ -198,6 +225,25 @@ class View {
        std::pair<View<C, E, R, P, F, t>, View<C2, E2, R2, P2, F2, t2>>,
        std::function<void()>, func::details::FuncType::ZIP>
       operator+(const View<C2, E2, R2, P2, F2, t2>& that);
+
+  Iterator begin() const;
+
+  template <typename T = int,
+            typename std::enable_if<
+                sizeof(T) && std::is_same<void*, P>::value, int>::type = 0>
+  Iterator end() const;
+
+  template <typename T = int, typename std::enable_if<
+                                  sizeof(T) && !std::is_same<void*, P>::value &&
+                                      t != func::details::FuncType::ZIP,
+                                  int>::type = 0>
+  Iterator end() const;
+
+  template <typename T = int, typename std::enable_if<
+                                  sizeof(T) && !std::is_same<void*, P>::value &&
+                                      t == func::details::FuncType::ZIP,
+                                  int>::type = 0>
+  Iterator end() const;
 
  private:
   template <typename G,
@@ -263,6 +309,9 @@ class View {
   template <template <typename...> class CF, typename EF, template <typename...>
             class RF, typename PF, typename FF, func::details::FuncType tf>
   friend class View;
+
+  template <typename IV, typename IP, func::details::FuncType it>
+  friend class func::details::ViewIterator;
 };
 
 // Creates a view of the given collection.

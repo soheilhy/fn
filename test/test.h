@@ -71,7 +71,7 @@ inline int add_test(F f) {
 
 template <typename T>
 void run_test(T t, const char* g, const char* n) {
-  const std::string test_name = std::string(g) + "." + n;
+  const std::string test_name = std::string(g) + "/" + n;
 
   log("Running " + test_name + ": ", Color::CYAN, true);
 

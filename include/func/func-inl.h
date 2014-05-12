@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace func {
 namespace details {
@@ -199,18 +200,8 @@ E View<C, E, R, P, F, t>::product() {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, func::details::FuncType t>
 E View<C, E, R, P, F, t>::first() {
-  E first;
-  bool is_first = true;
-  do_evaluate([&](const E& e) {
-    if (!is_first) {
-      return;
-    }
-
-    first = e;
-    is_first = false;
-  });
-
-  return first;
+  auto r = begin();
+  return r.is_at_end() ? E{} : *r;
 }
 
 template <template <typename...> class C, typename E, template <typename...>
@@ -283,6 +274,42 @@ template <typename G>
 View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator>>(G g) {
   for_each(g);
   return *this;
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
+typename View<C, E, R, P, F, t>::Iterator View<C, E, R, P, F, t>::begin()
+    const {
+  return Iterator(this);
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
+template <typename T,
+          typename std::enable_if<sizeof(T) && std::is_same<void*, P>::value,
+                                  int>::type>
+typename View<C, E, R, P, F, t>::Iterator View<C, E, R, P, F, t>::end() const {
+  return Iterator(container_->end(), container_->end());
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
+template <typename T,
+          typename std::enable_if<sizeof(T) && !std::is_same<void*, P>::value &&
+                                      t != func::details::FuncType::ZIP,
+                                  int>::type>
+typename View<C, E, R, P, F, t>::Iterator View<C, E, R, P, F, t>::end() const {
+  return Iterator(this, parent_.end());
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
+template <typename T,
+          typename std::enable_if<sizeof(T) && !std::is_same<void*, P>::value &&
+                                      t == func::details::FuncType::ZIP,
+                                  int>::type>
+typename View<C, E, R, P, F, t>::Iterator View<C, E, R, P, F, t>::end() const {
+  return Iterator(this, parent_.first.end(), parent_.second.end());
 }
 
 template <template <typename...> class C, typename E, template <typename...>
@@ -461,6 +488,14 @@ std::deque<E> View<C, E, R, P, F, t>::as_deque() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, func::details::FuncType t>
+std::unordered_set<E> View<C, E, R, P, F, t>::as_set() {
+  std::unordered_set<E> set;
+  evaluate(&set);
+  return std::move(set);
+}
+
+template <template <typename...> class C, typename E, template <typename...>
+          class R, typename P, typename F, func::details::FuncType t>
 template <typename K, typename V,
           typename std::enable_if<sizeof(K) && func::details::is_pair<E>::value,
                                   int>::type>
@@ -496,7 +531,7 @@ void View<C, E, R, P, F, t>::evaluate(std::unordered_map<K, V>* m) {
                 "Cannot use K for key.");
   static_assert(std::is_convertible<typename E::second_type, V>::value,
                 "Cannot use V for value.");
-  do_evaluate([&](const E& e) { m->emplace(e.first, e.second); });
+  do_evaluate([&](const E& e) { m->emplace(e); });
 }
 
 template <template <typename...> class C, typename E, template <typename...>
