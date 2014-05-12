@@ -1,20 +1,23 @@
 #ifndef FUNC_RANGE_H_
 #define FUNC_RANGE_H_
 
+#include <iterator>
+
 namespace func {
 
 // A simple iteratable range class.
 template <typename T = int>
 class Range {
  public:
-  class Iterator {
+  class Iterator : public std::iterator<std::forward_iterator_tag, T> {
    public:
     Iterator(const Range* range, T val);
 
-    T& operator*();
     const T& operator*() const;
+    const T& operator->() const;
 
     Iterator& operator++();
+    Iterator operator++(int);
 
     bool operator==(const Iterator& that) const;
     bool operator!=(const Iterator& that) const;
@@ -23,6 +26,10 @@ class Range {
     const Range* range_;
     T val_;
   };
+
+  // For compability with stl. Never used internally.
+  using const_iterator = Iterator;
+  using iterator = Iterator;
 
   Range(T from, T to, int step = 1);
 

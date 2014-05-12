@@ -59,8 +59,18 @@ typename Range<T>::Iterator& Range<T>::Iterator::operator++() {
   } else {
     val_ = std::max(range_->to_, val_ + range_->step_);
   }
-
   return *this;
+}
+
+template <typename T>
+typename Range<T>::Iterator Range<T>::Iterator::operator++(int) {
+  auto temp = *this;
+  if (range_->step_ > 0) {
+    val_ = std::min(range_->to_, val_ + range_->step_);
+  } else {
+    val_ = std::max(range_->to_, val_ + range_->step_);
+  }
+  return temp;
 }
 
 template <typename T>
@@ -74,12 +84,12 @@ bool Range<T>::Iterator::operator!=(const Iterator& that) const {
 }
 
 template <typename T>
-T& Range<T>::Iterator::operator*() {
+const T& Range<T>::Iterator::operator*() const {
   return val_;
 }
 
 template <typename T>
-const T& Range<T>::Iterator::operator*() const {
+const T& Range<T>::Iterator::operator->() const {
   return val_;
 }
 
