@@ -103,7 +103,10 @@ template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, func::details::FuncType t>
 template <typename T, typename G>
 T View<C, E, R, P, F, t>::fold_left(T init, G g) {
-  do_evaluate([&init, &g](const E& e) { init = g(init, e); });
+  do_evaluate([&init, &g](const E& e) {
+    // TODO(soheil): Is this valid?
+    init = std::move(g(std::move(init), e));
+  });
   return std::move(init);
 }
 
