@@ -4,7 +4,7 @@
 #include <memory>
 #include <tuple>
 
-namespace func {
+namespace fn {
 namespace details {
 
 enum class FuncType {
@@ -479,7 +479,7 @@ class ViewIterator<
 };
 
 }  // namespace details
-}  // namespace func
+}  // namespace fn
 
 #endif  // FUNC_DETAILS_H_
 

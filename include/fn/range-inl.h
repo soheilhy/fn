@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-namespace func {
+namespace fn {
 
 template <typename T>
 Range<T>::Range(T from, T to, int step) : from_(from), to_(to), step_(step) {}
@@ -93,7 +93,7 @@ const T& Range<T>::Iterator::operator->() const {
   return val_;
 }
 
-}  // namespace func
+}  // namespace fn
 
 #endif  // FUNC_RANGE_INL_H_
 

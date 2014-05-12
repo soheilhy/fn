@@ -3,7 +3,7 @@
 
 #include <iterator>
 
-namespace func {
+namespace fn {
 
 // A simple iteratable range class.
 template <typename T = int>
@@ -50,9 +50,9 @@ Range<T> range(T from, T to, int step = 1) {
   return Range<T>(from, to, step);
 }
 
-}  // namespace func
+}  // namespace fn
 
-#include "func/range-inl.h"
+#include "fn/range-inl.h"
 
 #endif  // FUNC_RANGE_H_
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-namespace func {
+namespace fn {
 namespace test {
 
 // To avoid any dependency, we implement a light-weight gtest-like library.
@@ -13,12 +13,12 @@ namespace test {
 
 #define TEST(g, n)                                                \
   void TEST_NAME(g, n)();                                         \
-  int TEST_VAR(g, n) = func::test::add_test([]() { RUN(g, n); }); \
+  int TEST_VAR(g, n) = fn::test::add_test([]() { RUN(g, n); }); \
   void TEST_NAME(g, n)()
 
 #define EXPECT_EQ(expected, actual, msg)                               \
   if ((expected) != (actual)) {                                        \
-    func::test::error = true;                                          \
+    fn::test::error = true;                                          \
     std::cerr << std::endl << "Error (" << __FILE__ << ":" << __LINE__ \
               << "): " << (msg) << std::endl;                          \
     std::cerr << "\tExpected: " << (expected) << std::endl;            \
@@ -92,7 +92,7 @@ void run_test(T t, const char* g, const char* n) {
   logln();
 }
 
-#define RUN(g, n) func::test::run_test(TEST_NAME(g, n), #g, #n);
+#define RUN(g, n) fn::test::run_test(TEST_NAME(g, n), #g, #n);
 
 void run_all_tests() {
   for (auto& t : *tests()) {
@@ -101,6 +101,6 @@ void run_all_tests() {
 }
 
 }  // namespace test
-}  // namespace func
+}  // namespace fn
 
 #endif  // FUNC_TEST_TEST_H_

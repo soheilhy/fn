@@ -3,8 +3,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include "func/range.h"
-#include "func/func.h"
+#include "fn/range.h"
+#include "fn/fn.h"
 #include "test/test.h"
 
 using std::make_pair;
@@ -12,8 +12,8 @@ using std::pair;
 using std::vector;
 using std::unordered_map;
 
-using func::_;
-using func::range;
+using fn::_;
+using fn::range;
 
 TEST(Basic, Map) {
   int last = 0;
@@ -280,6 +280,6 @@ TEST(Range, Functional) {
 }
 
 int main() {
-  func::test::run_all_tests();
+  fn::test::run_all_tests();
 }
 
