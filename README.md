@@ -66,9 +66,9 @@ auto len_count =
     _(&words).map([](const string& w) { return w.size(); })
              .fold_left(map<int, int>(), [](map<int, int>&& cnt,
                                             size_t len) {
-                cnt[len]++;
-                return cnt;
-              });
+                                              cnt[len]++;
+                                              return cnt;
+                                          });
 
 // And if your compiler is fully functional for C++14, you can
 // write a lot less using _$ and _$$ macros. These macros rely on
