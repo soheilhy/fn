@@ -32,12 +32,12 @@ class Private {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 View<C, E, R, P, F, t>::View(const C<E>& c, fn::details::Private)
-    : container_(c) {}
+    : container_(c), parent_(nullptr) {}
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 View<C, E, R, P, F, t>::View(C<E>&& c, fn::details::Private)
-    : container_(std::move(c)) {}
+    : container_(std::move(c)), parent_(nullptr) {}
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
@@ -46,34 +46,16 @@ View<C, E, R, P, F, t>::View(const P& p, F f, fn::details::Private)
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-View<C, E, R, P, F, t>::View(const P& p, F f, E data, uint64_t metadata,
-                             fn::details::Private)
-    : container_(), parent_(p), func_(f), data_(data), metadata_(metadata) {}
-
-template <template <typename...> class C, typename E, template <typename...>
-          class R, typename P, typename F, fn::details::FuncType t>
 View<C, E, R, P, F, t>::View(const View& that)
     : container_(!that.container_ ? std::move(CPtr()) : that.container_),
       parent_(that.parent_),
-      func_(that.func_),
-      data_(that.data_),
-      metadata_(that.metadata_) {}
-
-template <template <typename...> class C, typename E, template <typename...>
-          class R, typename P, typename F, fn::details::FuncType t>
-View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator=(const View& that) {
-  container_.reset(new C<E>(*that.container_));
-  parent_ = that.parent_;
-  func_ = that.func_;
-  data_ = that.data_;
-  metadata_ = that.metadata_;
-}
+      func_(that.func_) {}
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
 typename View<C, E, R, P, F, t>::template FView<G>
-View<C, E, R, P, F, t>::filter(G g) {
+View<C, E, R, P, F, t>::filter(G g) const {
   return View<C, E, R, View, G>(*this, g, fn::details::Private());
 }
 
@@ -82,10 +64,9 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename G>
 auto View<C, E, R, P, F, t>::map(G g)
     -> typename View<C, E, R, P, F, t>::template MView<
-          decltype(g(*(E*) nullptr)), G> {
+          decltype(g(*(E*) nullptr)), G> const {
   return View<C, typename std::decay<decltype(g(*(E*)nullptr))>::type, R, View,
-              G, fn::details::FuncType::MAP>(*this, g,
-                                               fn::details::Private());
+              G, fn::details::FuncType::MAP>(*this, g, fn::details::Private());
 }
 
 template <template <typename...> class C, typename E, template <typename...>
@@ -93,16 +74,16 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename G>
 auto View<C, E, R, P, F, t>::flat_map(G g)
     -> View<C, typename decltype(g(*(E*) nullptr))::value_type, R, View, G,
-            fn::details::FuncType::FLAT_MAP> {
+            fn::details::FuncType::FLAT_MAP> const {
   return View<C, typename decltype(g(*(E*)nullptr))::value_type, R, View, G,
               fn::details::FuncType::FLAT_MAP>(*this, g,
-                                                 fn::details::Private());
+                                               fn::details::Private());
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename T, typename G>
-T View<C, E, R, P, F, t>::fold_left(T init, G g) {
+T View<C, E, R, P, F, t>::fold_left(T init, G g) const {
   do_evaluate([&init, &g](const E& e) {
     // TODO(soheil): Is this valid?
     init = std::move(g(std::move(init), e));
@@ -113,7 +94,7 @@ T View<C, E, R, P, F, t>::fold_left(T init, G g) {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
-E View<C, E, R, P, F, t>::reduce(G g) {
+E View<C, E, R, P, F, t>::reduce(G g) const {
   bool first = true;
   E init{};
   do_evaluate([&](const E& e) {
@@ -130,7 +111,7 @@ E View<C, E, R, P, F, t>::reduce(G g) {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
-void View<C, E, R, P, F, t>::for_each(G g) {
+void View<C, E, R, P, F, t>::for_each(G g) const {
   do_evaluate([&](const E& e) { g(e); });
 }
 
@@ -138,7 +119,7 @@ template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
 View<C, E, R, View<C, E, R, P, F, t>, G, fn::details::FuncType::SKIP>
-View<C, E, R, P, F, t>::skip_until(G g) {
+View<C, E, R, P, F, t>::skip_until(G g) const {
   return View<C, E, R, View, G, fn::details::FuncType::SKIP>(
       *this, g, fn::details::Private());
 }
@@ -147,31 +128,9 @@ template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
 View<C, E, R, View<C, E, R, P, F, t>, G, fn::details::FuncType::KEEP>
-View<C, E, R, P, F, t>::keep_while(G g) {
+View<C, E, R, P, F, t>::keep_while(G g) const {
   return View<C, E, R, View, G, fn::details::FuncType::KEEP>(
       *this, g, fn::details::Private());
-}
-
-template <template <typename...> class C, typename E, template <typename...>
-          class R, typename P, typename F, fn::details::FuncType t>
-View<C, E, R, View<C, E, R, P, F, t>, std::function<bool(const E&)>,
-     fn::details::FuncType::SKIP>
-View<C, E, R, P, F, t>::drop(size_t n) {
-  auto v = View<C, E, R, View, std::function<bool(const E&)>,
-                fn::details::FuncType::SKIP>(
-      *this, std::function<bool(const E&)>(), n, 0, fn::details::Private());
-
-  auto f = [&v](const E&) {
-    if (v.data_ == 0) {
-      return true;
-    }
-
-    v.data_--;
-    return false;
-  };
-
-  v.func_ = f;
-  return v;
 }
 
 template <template <typename...> class C, typename E, template <typename...>
@@ -181,35 +140,35 @@ template <template <typename...> class C2, typename E2, template <typename...>
 View<C, std::pair<E, E2>, R,
      std::pair<View<C, E, R, P, F, t>, View<C2, E2, R2, P2, F2, t2>>,
      std::function<void()>, fn::details::FuncType::ZIP>
-View<C, E, R, P, F, t>::zip(const View<C2, E2, R2, P2, F2, t2>& that) {
+View<C, E, R, P, F, t>::zip(const View<C2, E2, R2, P2, F2, t2>& that) const {
   using Pair = std::pair<View, View<C2, E2, R2, P2, F2, t2>>;
   return View<C, std::pair<E, E2>, R, Pair, std::function<void()>,
               fn::details::FuncType::ZIP>(std::make_pair(*this, that), [] {},
-                                            fn::details::Private());
+                                          fn::details::Private());
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::sum() {
+E View<C, E, R, P, F, t>::sum() const {
   return reduce([](const E& s, const E& e) { return s + e; });
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::product() {
+E View<C, E, R, P, F, t>::product() const {
   return reduce([](const E& s, const E& e) { return s * e; });
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::first() {
+E View<C, E, R, P, F, t>::first() const {
   auto r = begin();
   return r.is_at_end() ? E{} : *r;
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::last() {
+E View<C, E, R, P, F, t>::last() const {
   E last;
   do_evaluate([&](const E& e) {
     // TODO(soheil): This would be very slow.
@@ -221,19 +180,19 @@ E View<C, E, R, P, F, t>::last() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::max() {
+E View<C, E, R, P, F, t>::max() const {
   return reduce([](const E& m, const E& e) { return std::max(m, e); });
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-E View<C, E, R, P, F, t>::min() {
+E View<C, E, R, P, F, t>::min() const {
   return reduce([](const E& m, const E& e) { return std::min(m, e); });
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-size_t View<C, E, R, P, F, t>::size() {
+size_t View<C, E, R, P, F, t>::size() const {
   size_t size = 0;
   do_evaluate([&](const E& /* e */) { size++; });
   return size;
@@ -242,7 +201,7 @@ size_t View<C, E, R, P, F, t>::size() {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
-bool View<C, E, R, P, F, t>::for_all(G g) {
+bool View<C, E, R, P, F, t>::for_all(G g) const {
   return fold_left(true,
                    [&g](const bool& all, const E& e) { return all && g(e); });
 }
@@ -251,7 +210,7 @@ template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
 typename View<C, E, R, P, F, t>::template FView<G> View<C, E, R, P, F, t>::
-operator%(G g) {
+operator%(G g) const {
   return filter(g);
 }
 
@@ -260,21 +219,21 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename G>
 auto View<C, E, R, P, F, t>::operator*(G g)
     -> typename View<C, E, R, P, F, t>::template MView<
-          decltype(g(*(E*) nullptr)), G> {
+          decltype(g(*(E*) nullptr)), G> const {
   return map(g);
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
-E View<C, E, R, P, F, t>::operator/(G g) {
+E View<C, E, R, P, F, t>::operator/(G g) const {
   return reduce(g);
 }
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <typename G>
-View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator>>(G g) {
+const View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator>>(G g) const {
   for_each(g);
   return *this;
 }
@@ -320,7 +279,7 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename G,
           typename std::enable_if<sizeof(G) && std::is_same<void*, P>::value,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   assert(is_evaluated() && "Cannot evaluate a view without a parent.");
 
   for (const auto& e : *container_) {
@@ -334,7 +293,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::FILTER,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   parent_.do_evaluate([this, &g](const PE& e) {
@@ -352,7 +311,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::ZIP,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   auto p1 = parent_.first.evaluate();
   auto itr = p1.begin();
   auto end = p1.end();
@@ -374,7 +333,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::SKIP,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   bool passed = false;
@@ -394,7 +353,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::KEEP,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   bool keep = true;
@@ -418,7 +377,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::MAP,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   parent_.do_evaluate([this, &g](const PE& e) { g(func_(e)); });
@@ -430,7 +389,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::FLAT_MAP,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   parent_.do_evaluate([this, &g](const PE& e) {
@@ -447,7 +406,7 @@ template <typename G,
           typename std::enable_if<sizeof(G) && !std::is_same<void*, P>::value &&
                                       t == fn::details::FuncType::FOLD_LEFT,
                                   int>::type>
-void View<C, E, R, P, F, t>::do_evaluate(G g) {
+void View<C, E, R, P, F, t>::do_evaluate(G g) const {
   using PE = typename std::decay<typename P::Element>::type;
 
   parent_.do_evaluate([this, &g](const PE& e) { g(func_(e)); });
@@ -455,7 +414,7 @@ void View<C, E, R, P, F, t>::do_evaluate(G g) {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-C<E> View<C, E, R, P, F, t>::evaluate() {
+C<E> View<C, E, R, P, F, t>::evaluate() const {
   if (is_evaluated()) {
     return *container_;
   }
@@ -467,7 +426,7 @@ C<E> View<C, E, R, P, F, t>::evaluate() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-std::vector<E> View<C, E, R, P, F, t>::as_vector() {
+std::vector<E> View<C, E, R, P, F, t>::as_vector() const {
   std::vector<E> v;
   do_evaluate([&](const E& e) { v.push_back(e); });
   return std::move(v);
@@ -475,7 +434,7 @@ std::vector<E> View<C, E, R, P, F, t>::as_vector() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-std::list<E> View<C, E, R, P, F, t>::as_list() {
+std::list<E> View<C, E, R, P, F, t>::as_list() const {
   std::list<E> l;
   evaluate(&l);
   return std::move(l);
@@ -483,7 +442,7 @@ std::list<E> View<C, E, R, P, F, t>::as_list() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-std::deque<E> View<C, E, R, P, F, t>::as_deque() {
+std::deque<E> View<C, E, R, P, F, t>::as_deque() const {
   std::deque<E> d;
   evaluate(&d);
   return std::move(d);
@@ -491,7 +450,7 @@ std::deque<E> View<C, E, R, P, F, t>::as_deque() {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-std::unordered_set<E> View<C, E, R, P, F, t>::as_set() {
+std::unordered_set<E> View<C, E, R, P, F, t>::as_set() const {
   std::unordered_set<E> set;
   evaluate(&set);
   return std::move(set);
@@ -502,7 +461,7 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename K, typename V,
           typename std::enable_if<sizeof(K) && fn::details::is_pair<E>::value,
                                   int>::type>
-std::unordered_map<K, V> View<C, E, R, P, F, t>::as_map() {
+std::unordered_map<K, V> View<C, E, R, P, F, t>::as_map() const {
   std::unordered_map<K, V> m;
   evaluate(&m);
   return std::move(m);
@@ -511,7 +470,7 @@ std::unordered_map<K, V> View<C, E, R, P, F, t>::as_map() {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <template <typename...> class EC>
-void View<C, E, R, P, F, t>::evaluate(EC<E>* c) {
+void View<C, E, R, P, F, t>::evaluate(EC<E>* c) const {
   assert(c != nullptr && "Container is nullptr.");
   do_evaluate([&](const E& e) { c->push_back(e); });
 }
@@ -519,7 +478,8 @@ void View<C, E, R, P, F, t>::evaluate(EC<E>* c) {
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
 template <template <typename...> class EC>
-View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator>>(EC<E>* container) {
+const View<C, E, R, P, F, t>& View<C, E, R, P, F, t>::operator>>(
+    EC<E>* container) const {
   evaluate(container);
   return *this;
 }
@@ -529,7 +489,7 @@ template <template <typename...> class C, typename E, template <typename...>
 template <typename K, typename V,
           typename std::enable_if<sizeof(K) && fn::details::is_pair<E>::value,
                                   int>::type>
-void View<C, E, R, P, F, t>::evaluate(std::unordered_map<K, V>* m) {
+void View<C, E, R, P, F, t>::evaluate(std::unordered_map<K, V>* m) const {
   static_assert(std::is_convertible<typename E::first_type, K>::value,
                 "Cannot use K for key.");
   static_assert(std::is_convertible<typename E::second_type, V>::value,
@@ -539,7 +499,7 @@ void View<C, E, R, P, F, t>::evaluate(std::unordered_map<K, V>* m) {
 
 template <template <typename...> class C, typename E, template <typename...>
           class R, typename P, typename F, fn::details::FuncType t>
-View<C, E, R, P, F, t>::operator C<E>() {
+View<C, E, R, P, F, t>::operator C<E>() const {
   return std::move(evaluate());
 }
 

@@ -135,13 +135,6 @@ TEST(Basic, KeepWhile) {
   EXPECT_EQ(1, v[1], "Second element should be 1");
 }
 
-TEST(Basic, Drop) {
-  vector<int> v = _({0, 1, 2, 1, 2}).drop(3);
-  EXPECT_EQ(2, v.size(), "View should contain only 2 elements.");
-  EXPECT_EQ(1, v[0], "First element should be 1");
-  EXPECT_EQ(2, v[1], "Second element should be 2");
-}
-
 TEST(Basic, FirstLast) {
   auto v = _({1, 2, 3, 4, 5}).filter([](int i) { return i % 2 != 0; });
   EXPECT_EQ(3, v.size(), "View contains 3 odd elements.");
@@ -166,20 +159,21 @@ TEST(Basic, InPlaceEvaluate) {
   vector<int> results;
 
   auto validate_and_reset_results = [&]() {
-    EXPECT_EQ(size_t(2), results.size(),
+    EXPECT_EQ(size_t(3), results.size(),
               "The results vector is not correctly filled.");
-    EXPECT_EQ(1, results[0], "");
-    EXPECT_EQ(2, results[1], "");
+    EXPECT_EQ(2, results[0], "");
+    EXPECT_EQ(1, results[1], "");
+    EXPECT_EQ(2, results[2], "");
 
     results.clear();
   };
 
   // Container.
-  _({0, 1, 2, 1, 2}).drop(3).evaluate(&results);
+  _({0, 1, 2, 1, 2}).skip_until([](int i) { return i > 1; }).evaluate(&results);
   validate_and_reset_results();
 
   // Syntax sugar.
-  _({0, 1, 2, 1, 2}).drop(3) >> &results;
+  _({0, 1, 2, 1, 2}).skip_until([](int i) { return i > 1; }) >> &results;
   validate_and_reset_results();
 }
 
@@ -236,20 +230,20 @@ TEST(Basic, Range) {
   auto r = range(1, 1);
   EXPECT_TRUE(r.empty(), "The range should be empty.");
   for (auto i : r) {
-    EXPECT_FALSE(true, "Should never be ran for an empty range.");
+    EXPECT_FALSE(i && true, "Should never be ran for an empty range.");
   }
 
   r = range(2, 3, -1);
   EXPECT_TRUE(r.empty(), "The range should be empty.");
   for (auto i : r) {
-    EXPECT_FALSE(true, "Should never be ran for an empty range.");
+    EXPECT_FALSE(i && true, "Should never be ran for an empty range.");
   }
 
   r = range(1, 3);
   EXPECT_EQ(size_t(2), r.size(), "Range should have two elements.");
 
   auto sum = 0;
-  auto count = 0;
+  auto count = size_t(0);
   for (auto i : r) {
     sum += i;
     count++;
