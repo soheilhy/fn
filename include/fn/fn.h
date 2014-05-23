@@ -141,6 +141,16 @@ class View {
   // Returns the number of elements in the view.
   size_t size() const;
 
+  // Returns the size of the container (ie, source) stored in the root view.
+  template <typename RP = P, typename std::enable_if<
+                                 std::is_same<void*, RP>::value, int>::type = 0>
+  size_t root_size() const { return container_.root_size(); }
+
+  template <
+      typename RP = P,
+      typename std::enable_if<!std::is_same<void*, RP>::value, int>::type = 0>
+  size_t root_size() const { return parent_.root_size(); }
+
   // Returns true if the g returns true for all elements, otherwise returns
   // false.
   template <typename G>
