@@ -14,7 +14,7 @@ That's all. It's a header only library with **no** dependecies, **no**
 configuration, **no** installation, etc.
 
 
-##tldr; Some examples##
+##tldr; Some Examples##
 _fn_ provides a lazy evaluated *view* (similar to Scala's
 `view`) on which you can apply the usual functional programming
 paradigms, including but not limited to `filter`, `map`, `reduce`,
