@@ -14,7 +14,7 @@ That's all. It's a header only library with **no** dependecies, **no**
 configuration, **no** installation, etc.
 
 
-##tldr; Summary##
+##tldr; Some examples##
 _fn_ provides a lazy evaluated *view* (similar to Scala's
 `view`) on which you can apply the usual functional programming
 paradigms, including but not limited to `filter`, `map`, `reduce`,
@@ -105,7 +105,7 @@ int max = _(range(999, 99, -1))
               .max();
 ```
 
-##Introduction##
+##Views and Ranges##
 C++11 come with awesome functional programming concepts but the syntax
 is not as pleasant as what you get in Scala or Haskell. The goal of _fn_
 is to provide a lightweight library with a simple and sweet syntax for
