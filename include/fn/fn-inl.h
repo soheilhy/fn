@@ -16,9 +16,12 @@
 #define FUNC_FUNC_INL_H_
 
 #include <cassert>
+#include <deque>
+#include <list>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace fn {
 namespace details {

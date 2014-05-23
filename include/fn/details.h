@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <tuple>
+#include <utility>
 
 namespace fn {
 namespace details {
@@ -36,8 +37,8 @@ class Private;
 template <typename T>
 struct Copy {
   Copy() : p() {}
-  Copy(const T& t) : p(new T(t)) {}
-  Copy(T&& t) : p(new T(std::move(t))) {}
+  explicit Copy(const T& t) : p(new T(t)) {}
+  explicit Copy(T&& t) : p(new T(std::move(t))) {}
 
   Copy(const Copy& that) : p(that.p ? new T(*that.p) : nullptr) {}
   Copy(Copy&&) = default;
@@ -45,8 +46,8 @@ struct Copy {
   const T& operator*() const { return *p; }
   const T* operator->() const { return p.get(); }
 
-  bool operator!() const { return !bool(*this); }
-  operator bool() const { return p != nullptr; }
+  bool operator!() const { return !static_cast<bool>(*this); }
+  explicit operator bool() const { return p != nullptr; }
 
   std::unique_ptr<const T> p;
 };
@@ -54,25 +55,25 @@ struct Copy {
 template <typename T>
 struct Ref {
   Ref() : p(nullptr) {}
-  Ref(const T& t) : p(&t) {}
+  explicit Ref(const T& t) : p(&t) {}
 
   const T& operator*() const { return *p; }
   const T* operator->() const { return p; }
 
-  bool operator!() const { return !bool(*this); }
-  operator bool() const { return p != nullptr; }
+  bool operator!() const { return !static_cast<bool>(*this); }
+  explicit operator bool() const { return p != nullptr; }
 
   const T* p;
 };
 
 template <typename>
 struct is_pair {
-  const static bool value = false;
+  static const bool value = false;
 };
 
 template <typename F, typename S>
 struct is_pair<std::pair<F, S>> {
-  const static bool value = true;
+  static const bool value = true;
 };
 
 template <typename View, typename PView = typename View::PView,
@@ -86,7 +87,7 @@ class ViewIterator<View, PView, FuncType::MAP> : public std::iterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView>(&view->parent_)) {}
 
   ViewIterator(const View* view, ViewIterator<PView>&& iter)
@@ -131,7 +132,7 @@ class ViewIterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView>(&view->parent_)) {}
 
   ViewIterator(const View* view, ViewIterator<PView>&& iter)
@@ -200,7 +201,7 @@ class ViewIterator<View, PView, FuncType::SKIP> : public std::iterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView>(&view->parent_)) {}
 
   ViewIterator(const View* view, ViewIterator<PView>&& iter)
@@ -259,7 +260,7 @@ class ViewIterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView>(&view->parent_)) {}
 
   ViewIterator(const View* view, ViewIterator<PView>&& iter)
@@ -312,8 +313,8 @@ class ViewIterator<
       cntr_ = std::move(view_->func_(*iter_));
       citer_ = cntr_.begin();
       cend_ = cntr_.end();
-      *iter_++;
-    } while(!is_at_end() && citer_ == cend_);
+      ++iter_;
+    } while (!is_at_end() && citer_ == cend_);
   }
 
   const View* view_;
@@ -335,7 +336,7 @@ class ViewIterator<View, PView, FuncType::KEEP> : public std::iterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView>(&view->parent_)) {}
 
   ViewIterator(const View* view, ViewIterator<PView>&& iter)
@@ -396,7 +397,7 @@ class ViewIterator<
  public:
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view, ViewIterator<PView1>(&view->parent_.first),
                      ViewIterator<PView2>(&view->parent_.second)) {}
 
@@ -453,8 +454,9 @@ class ViewIterator<
   using CIter = typename View::Container::const_iterator;
   using Element = typename View::Element;
 
-  ViewIterator(const View* view)
+  explicit ViewIterator(const View* view)
       : ViewIterator(view->container_->begin(), view->container_->end()) {}
+
   ViewIterator(const CIter& iter, const CIter& end) : iter_(iter), end_(end) {}
 
   ViewIterator& operator++() {

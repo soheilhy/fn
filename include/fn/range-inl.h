@@ -77,7 +77,7 @@ typename Range<T>::Iterator& Range<T>::Iterator::operator++() {
 }
 
 template <typename T>
-typename Range<T>::Iterator Range<T>::Iterator::operator++(int) {
+typename Range<T>::Iterator Range<T>::Iterator::operator++(int /* postfix */) {
   auto temp = *this;
   if (range_->step_ > 0) {
     val_ = std::min(range_->to_, val_ + range_->step_);
