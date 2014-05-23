@@ -144,7 +144,7 @@ class View {
   // Returns the size of the container (ie, source) stored in the root view.
   template <typename RP = P, typename std::enable_if<
                                  std::is_same<void*, RP>::value, int>::type = 0>
-  size_t root_size() const { return container_.root_size(); }
+  size_t root_size() const { return container_->size(); }
 
   template <
       typename RP = P,

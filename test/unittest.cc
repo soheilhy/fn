@@ -226,6 +226,11 @@ TEST(Basic, Ref) {
   EXPECT_EQ(4, r[1], "");
 }
 
+TEST(Basic, RootSize) {
+  auto s = _({1, 2, 3, 4, 5}).filter([](int i) { return i == 2; }).root_size();
+  EXPECT_EQ(5, s, "Root size is affected by the filter probably.");
+}
+
 TEST(Basic, Range) {
   auto r = range(1, 1);
   EXPECT_TRUE(r.empty(), "The range should be empty.");
