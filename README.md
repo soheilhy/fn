@@ -1,26 +1,17 @@
-#_fn_#
-_fn_ is a collection of functional programming helpers for C++11.
+# _fn_
+_fn_ is a collection of functional programming helpers for C++11,
+inspired by Scala. It's header only and has no dependecies.
 It has a concise syntax and supports `gcc-4.8+` and `clang-3.4+`.
 It is efficient, lightweight and convenient
 (compared to the STL's `<algorithm>`).
 
-Just add _fn_'s `include` directory to your C++ include directories,
-and you are ready to go:
-```
-CXX -std=c++11 -I ${FN_HOME}/include/ ...
-```
-
-That's all. It's a header only library with **no** dependecies, **no**
-configuration, **no** installation, etc.
-
-
-##tldr; Some Examples##
+## Some Examples
 _fn_ provides a lazy evaluated *view* (similar to Scala's
 `view`) on which you can apply the usual functional programming
 paradigms, including but not limited to `filter`, `map`, `reduce`,
 `zip`, `fold_left`, `flat_map` and `for_all`. View are iteratble.
 
-Using _fn_, you can hack like this in C++:
+Lets implement a few examples.
 
 **MAX** Find the maximum of elements in a container (e.g., vector, list,
 ...).
@@ -105,7 +96,7 @@ int max = _(range(999, 99, -1))
               .max();
 ```
 
-##Views and Ranges##
+## Views and Ranges
 C++11 come with awesome functional programming concepts but the syntax
 is not as pleasant as what you get in Scala or Haskell. The goal of _fn_
 is to provide a lightweight library with a simple and sweet syntax for
@@ -114,7 +105,7 @@ common functional programming paradigms.
 _fn_ provides two main concepts `View` (inspired by Scala's view) and
 `Range` (inspired by Python's xrange).
 
-###View###
+### View
 `View` simply embeds a container, or anything iteratble. To create a
 view, you need to call `fn::_`:
 
@@ -207,7 +198,7 @@ int main() {
 }
 ```
 
-###Range###
+### Range
 Range is pretty similar to python's `xrange`. To create a range, one
 calls `fn::range()`:
 ```c++
@@ -238,7 +229,7 @@ int main() {
 
 ```
 
-##Helper macros for C++14##
+## Helper macros for C++14
 If your compiler supports C++14, you can exploit automatic type
 deduction for lambda parameters. Actually, _fn_ has two macros to help
 you with that `_$` and `_$$` which respectively create lambdas of one
@@ -247,6 +238,20 @@ and two parameters. You can access the paramters as `_1` and `_2`.
 auto a = _$ { return _1 * 2; }
 auto b = _$$ { return std::max(_1, _2); }
 ```
+
+## How to use
+
+Just add _fn_'s `include` directory to your C++ include directories,
+and you are ready to go:
+```
+CXX -std=c++11 -I ${FN_HOME}/include/ ...
+```
+
+That's all. It's a header only library with **no** dependecies, **no**
+and **no** configuration.
+
+## Roadmap
+1. Parallelization.
 
 
 
