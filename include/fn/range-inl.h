@@ -59,7 +59,8 @@ size_t Range<T>::size() const {
     return 0;
   }
 
-  return std::abs((from_ - to_) / step_);
+  auto s = (to_ - from_) / step_;
+  return s >= 0 ? s : -s;
 }
 
 template <typename T>
