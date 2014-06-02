@@ -25,6 +25,7 @@ AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([examples/Makefile])
 AC_CONFIG_FILES([test/Makefile])
 AC_OUTPUT
 
