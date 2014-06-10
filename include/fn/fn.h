@@ -347,7 +347,9 @@ View<std::vector, E> _(const std::initializer_list<E>& l);
 template <typename K, typename V>
 View<std::vector, std::pair<K, V>> _(const std::unordered_map<K, V>& l);
 
-#if defined __cplusplus&& __cplusplus > 201103L
+#define FN_CXX1Y (__cplusplus && __cplusplus > 201103L)
+
+#if FN_CXX1Y
 #define _$ [&](auto _1)
 #define _$$ [&](auto _1, auto _2)
 #endif

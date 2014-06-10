@@ -6,7 +6,7 @@ m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 
 AM_INIT_AUTOMAKE([foreign])
 
-: ${CXX_FLAGS="-std=c++11 -g -O0"}
+: ${CXX_FLAGS="-g -O0"}
 
 AC_PROG_CXX
 AC_LANG([C++])

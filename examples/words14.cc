@@ -23,6 +23,7 @@
 using fn::_;
 
 void word_count() {
+#if FN_CXX1Y
   std::vector<std::string> words {"map", "fold", "filter", "reduce", "any"};
 
   auto len_count =
@@ -35,6 +36,9 @@ void word_count() {
   for (const auto& e : len_count) {
     printf("We have %d word(s) of length %d\n", e.second, e.first);
   }
+#else
+  printf("C++14 is not supported in your compiler.\n");
+#endif
 }
 
 int main() {
