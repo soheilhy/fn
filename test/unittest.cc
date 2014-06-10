@@ -52,8 +52,8 @@ TEST(Basic, FlatMap) {
 }
 
 TEST(Basic, Filter) {
-  vector<int> f = _(vector<int>({1, 2, 3, 4}))
-                           .filter([](int i) { return i % 2 == 0; });
+  vector<int> f = static_cast<vector<int>>(
+      _(vector<int>({1, 2, 3, 4})).filter([](int i) { return i % 2 == 0; }));
   EXPECT_EQ(2, f.size(), "There are 2 even numbers in the view.");
   EXPECT_EQ(2, f[0], "The first one should be 2.");
   EXPECT_EQ(4, f[1], "The second one should be 4.");
@@ -135,7 +135,8 @@ TEST(Basic, Product) {
 }
 
 TEST(Basic, SkipUntil) {
-  vector<int> v = _({0, 1, 2, 1, 2}).skip_until([](int i) { return i >= 2; });
+  vector<int> v = static_cast<vector<int>>(
+      _({0, 1, 2, 1, 2}).skip_until([](int i) { return i >= 2; }));
   EXPECT_EQ(3, v.size(), "View should contain only 3 elements.");
   EXPECT_EQ(2, v[0], "First element should be 2");
   EXPECT_EQ(1, v[1], "Second element should be 1");
@@ -143,7 +144,8 @@ TEST(Basic, SkipUntil) {
 }
 
 TEST(Basic, KeepWhile) {
-  vector<int> v = _({0, 1, 2, 1, 2}).keep_while([](int i) { return i < 2; });
+  vector<int> v = static_cast<vector<int>>(
+      _({0, 1, 2, 1, 2}).keep_while([](int i) { return i < 2; }));
   EXPECT_EQ(2, v.size(), "View should contain only 2 elements.");
   EXPECT_EQ(0, v[0], "First element should be 0");
   EXPECT_EQ(1, v[1], "Second element should be 1");

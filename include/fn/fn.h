@@ -178,7 +178,7 @@ class View {
   C<E> evaluate() const;
 
   // For converting the view to an actual container.
-  operator C<E>() const;
+  explicit operator C<E>() const;
 
   // Returns the values in the view as a vector.
   std::vector<E> as_vector() const;
