@@ -1,19 +1,17 @@
 # _fn_
 _fn_ is a collection of functional programming helpers for C++11,
 inspired by Scala. It's header only and has no dependecies.
-It has a concise syntax and supports `gcc-4.8+` and `clang-3.4+`.
-It is efficient, lightweight and convenient
-(compared to the STL's `<algorithm>`).
+It is efficient, lightweight and convenient (compared to the STL's
+`<algorithm>`).
 
-## Some Examples
 _fn_ provides a lazy evaluated *view* (similar to Scala's
 `view`) on which you can apply the usual functional programming
-paradigms, including but not limited to `filter`, `map`, `reduce`,
-`zip`, `fold_left`, `flat_map` and `for_all`. View are iteratble.
+tasks, including but not limited to `filter`, `map`, `reduce`,
+`zip`, `fold_left`, `flat_map` and `for_all`. Views are iteratble.
 
-Lets implement a few examples.
+## Some Examples
 
-**MAX** Find the maximum of elements in a container (e.g., vector, list,
+**MAX**: Find the maximum of elements in a container (e.g., vector, list,
 ...).
 ```c++
 std::vector<int> v{1, 2, 3, 4, 5};
@@ -24,7 +22,7 @@ auto max = _(v).max();
 auto max = _(&v).max();
 ```
 
-**EVENS** Find all even elements in a vector.
+**EVENS**: Find all even elements in a vector.
 ```c++
 std::vector<int> evens = _(&v).filter([](int i) { return i % 2 == 0; });
 // or, append them to an existing container:
@@ -43,14 +41,14 @@ for (auto i : _(&v) % [](int i) { return i % 2 == 0; }) {
 }
 ```
 
-**XOR** Find the xor of all even elements in a vector.
+**XOR**: Find the xor of all even elements in a vector.
 ```c++
 std::vector<int> v{1, 2, 3, 4, 5};
 auto r = _(&v).filter([](int i) { return i % 2 == 0; })
               .reduce([](int m, int i) { return m ^ i; });
 ```
 
-**WORDS OF SAME LENGTH** Count the number of words of each distinct length.
+**WORDS OF SAME LENGTH**: Count the number of words of each distinct length.
 ```C++
 vector<string> words {"map", "fold", "filter", "reduce", "any"};
 auto len_count =
@@ -72,7 +70,7 @@ auto len_count =
               });
 ```
 
-**[Euler #1][1]** Find the sum of all the multiples of 3 or 5 below
+**[Euler #1][1]**: Find the sum of all the multiples of 3 or 5 below
 1000.
 ```c++
 // Here we use fn::range which is convenient, efficient, and iteratable.
@@ -81,7 +79,7 @@ int s = _(range(1, 1000))
             .sum();
 ```
 
-**[Euler #4][2]** Find the largest palindrome made from the product of
+**[Euler #4][2]**: Find the largest palindrome made from the product of
 two 3-digit numbers.
 ```c++
 int max = _(range(999, 99, -1))
@@ -97,10 +95,10 @@ int max = _(range(999, 99, -1))
 ```
 
 ## Views and Ranges
-C++11 come with awesome functional programming concepts but the syntax
+C++11 come with functional programming concepts but the syntax
 is not as pleasant as what you get in Scala or Haskell. The goal of _fn_
 is to provide a lightweight library with a simple and sweet syntax for
-common functional programming paradigms.
+common functional programming tasks.
 
 _fn_ provides two main concepts `View` (inspired by Scala's view) and
 `Range` (inspired by Python's xrange).
@@ -199,8 +197,8 @@ int main() {
 ```
 
 ### Range
-Range is pretty similar to python's `xrange`. To create a range, one
-calls `fn::range()`:
+Range is pretty similar to python's `xrange`. To create a range,
+just call `fn::range()`:
 ```c++
 #include "fn/range.h"
 
